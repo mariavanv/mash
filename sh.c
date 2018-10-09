@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <glob.h>
+#include <pthread.h>
 #include "sh.h"
 
 #define BUFFERSIZE 256
@@ -40,6 +41,7 @@ int sh( int argc, char **argv, char **envp )
   struct historyelement *newcommand = NULL;
   struct aliaselement* aliasList = NULL;
   int background = 0;
+  pthread_t watchuserThread;
 
   uid = getuid();
   password_entry = getpwuid(uid);               /* get passwd info */
