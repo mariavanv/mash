@@ -62,9 +62,12 @@ int sh( int argc, char **argv, char **envp )
 
   while ( go )
   {
+    // reset background boolean
     background = 0;
+    // clean up a finished child, if it exists
     int status;
     waitpid(-1, &status, WNOHANG);
+
     /* print your prompt */
     printf("%s [%s]>", prompt, pwd);
 
@@ -98,6 +101,7 @@ int sh( int argc, char **argv, char **envp )
       argCounter++;
     }
     argsct = argCounter;
+    // check if & is set for backgrounding, then remove for rest of command processing
     if (1 < argsct && 0 == strcmp(args[argsct-2], "&")) {
       background = 1;
       args[argsct-2] = NULL;
@@ -396,6 +400,7 @@ int sh( int argc, char **argv, char **envp )
         if (pid > 0) {
           int status;
           int outputStatus = 0;
+          // if background is not set, wait for child, otherwise it will check before next prompt
           if (!background) {
             waitpid(pid, &status, 0);
             if (0 != (outputStatus = WEXITSTATUS(status))) {
