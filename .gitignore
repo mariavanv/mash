@@ -1,0 +1,11 @@
+*.o
+/mysh
+/sample_proj_2/mysh
+/sample_proj_2/sh.c
+/sample_proj_2/get_path.c
+/sample_proj_2/main.c
+/sample_proj_2/makefile
+/sample_proj_2/get_path.h
+/sample_proj_2/sh.h
+/core
+/alias.a
