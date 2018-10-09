@@ -2,8 +2,8 @@
 CC=gcc
 #CC=gcc -Wall
 
-mysh: sh.o history.o alias.o get_path.o main.c 
-	$(CC) -g main.c sh.o history.o alias.o get_path.o -pthread -o mysh
+mysh: sh.o history.o alias.o watchuser.o get_path.o main.c 
+	$(CC) -g main.c sh.o history.o alias.o watchuser.o get_path.o -pthread -o mysh
 #	$(CC) -g main.c sh.o history.o alias.o get_path.o bash_getcwd.o -o mysh
 
 sh.o: sh.c sh.h
@@ -14,6 +14,9 @@ alias.o: alias.c alias.h
 
 history.o: history.c history.h
 	$(CC) -g -c history.c
+
+watchuser.o: history.c history.h
+	$(CC) -g -c watchuser.c
 
 get_path.o: get_path.c get_path.h
 	$(CC) -g -c get_path.c

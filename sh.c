@@ -12,9 +12,13 @@
 #include <errno.h>
 #include <glob.h>
 #include <pthread.h>
+#include <utmpx.h>
 #include "sh.h"
 
 #define BUFFERSIZE 256
+
+struct watchuserelement* watchuserList;
+pthread_mutex_t watchuserMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int sh( int argc, char **argv, char **envp )
 {
@@ -41,7 +45,7 @@ int sh( int argc, char **argv, char **envp )
   struct historyelement *newcommand = NULL;
   struct aliaselement* aliasList = NULL;
   int background = 0;
-  pthread_t watchuserThread;
+  pthread_t watchuserThread = 0;
 
   uid = getuid();
   password_entry = getpwuid(uid);               /* get passwd info */
@@ -124,6 +128,7 @@ int sh( int argc, char **argv, char **envp )
 	0 == strcmp(command, "printenv") ||
 	0 == strcmp(command, "alias") ||
 	0 == strcmp(command, "history") ||
+	0 == strcmp(command, "watchuser") ||
 	0 == strcmp(command, "setenv")) {
       printf("Executing built-in ");
     }
@@ -361,6 +366,37 @@ int sh( int argc, char **argv, char **envp )
         homedir = getenv(home);
       }
     }
+    else if (0 == strcmp(command, "watchuser")) {
+      printf("watchuser\n");
+      if (NULL == args[0]) {
+        printf("watchuser: requires username\n");
+        continue;
+      }
+      // block simultaneously editting watch list
+      pthread_mutex_lock(&watchuserMutex);
+      struct watchuserelement* watch = addWatchuser(args[0]);
+      // if list is empty, new element becomes list
+      if (NULL == watchuserList) {
+        watchuserList = watch;
+      }
+      else {
+        // add "watch" at end of list
+        struct watchuserelement* curr = watchuserList;
+        while(curr && curr->next) {
+          curr = curr->next;
+        }
+        curr->next = watch;
+      }
+      // end blocking
+      pthread_mutex_unlock(&watchuserMutex);
+      checkUser(watch);
+      // start the watch thread if it doesn't exist
+      if (0 == watchuserThread) {
+        if (pthread_create(&watchuserThread, NULL, watchuser, NULL)) {
+          fprintf(stderr, "error creating thread\n");
+        }
+      }
+    }
 
 
 
@@ -572,5 +608,29 @@ void list ( char *dir )
 void printenv(char** envp) {
   for (int i = 0; NULL != envp[i]; i++) {
     printf("%s\n", envp[i]);
+  }
+}
+
+void* watchuser(void* param) {
+  while(1) {
+    struct watchuserelement* curr = watchuserList;
+    while(curr) {
+      if (!curr->loggedOn) {
+        checkUser(curr);
+      }
+      curr = curr->next;
+    }
+    sleep(20);
+  }
+}
+
+void checkUser(struct watchuserelement* watch) {
+  struct utmpx* up;
+  setutxent();
+  while(up = getutxent()) {
+    if (USER_PROCESS == up->ut_type && 0 == strcmp(up->ut_user, watch->username)) {
+      printf("%s has logged on %s from %s\n", up->ut_user, up->ut_line, up->ut_host);
+      watch->loggedOn = 1;
+    }
   }
 }
