@@ -39,6 +39,7 @@ int sh( int argc, char **argv, char **envp )
   struct historyelement *lastcommand = NULL;
   struct historyelement *newcommand = NULL;
   struct aliaselement* aliasList = NULL;
+  int background = 0;
 
   uid = getuid();
   password_entry = getpwuid(uid);               /* get passwd info */
@@ -61,6 +62,9 @@ int sh( int argc, char **argv, char **envp )
 
   while ( go )
   {
+    background = 0;
+    int status;
+    waitpid(-1, &status, WNOHANG);
     /* print your prompt */
     printf("%s [%s]>", prompt, pwd);
 
@@ -94,6 +98,11 @@ int sh( int argc, char **argv, char **envp )
       argCounter++;
     }
     argsct = argCounter;
+    if (1 < argsct && 0 == strcmp(args[argsct-2], "&")) {
+      background = 1;
+      args[argsct-2] = NULL;
+    }
+    argsct--;
 
     /* check for each built in command and implement */
     if (
@@ -387,9 +396,11 @@ int sh( int argc, char **argv, char **envp )
         if (pid > 0) {
           int status;
           int outputStatus = 0;
-          waitpid(pid, &status, 0);
-          if (0 != (outputStatus = WEXITSTATUS(status))) {
-            printf("Exit %d\n", outputStatus);
+          if (!background) {
+            waitpid(pid, &status, 0);
+            if (0 != (outputStatus = WEXITSTATUS(status))) {
+              printf("Exit %d\n", outputStatus);
+            }
           }
         }
         // child
