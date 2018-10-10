@@ -4,6 +4,7 @@
 #include <string.h>
 
 struct watchuserelement* addWatchuser(char* username);
+struct watchuserelement* removeWatchuser(struct watchuserelement* head, char* username);
 
 struct watchuserelement
 {

@@ -374,22 +374,27 @@ int sh( int argc, char **argv, char **envp )
       }
       // block simultaneously editting watch list
       pthread_mutex_lock(&watchuserMutex);
-      struct watchuserelement* watch = addWatchuser(args[0]);
-      // if list is empty, new element becomes list
-      if (NULL == watchuserList) {
-        watchuserList = watch;
-      }
-      else {
-        // add "watch" at end of list
-        struct watchuserelement* curr = watchuserList;
-        while(curr && curr->next) {
-          curr = curr->next;
+      if (1 == argsct) {
+        struct watchuserelement* watch = addWatchuser(args[0]);
+        // if list is empty, new element becomes list
+        if (NULL == watchuserList) {
+          watchuserList = watch;
         }
-        curr->next = watch;
+        else {
+          // add "watch" at end of list
+          struct watchuserelement* curr = watchuserList;
+          while(curr && curr->next) {
+            curr = curr->next;
+          }
+          curr->next = watch;
+        }
+        checkUser(watch);
+      }
+      else if (2 == argsct && 0 == strcmp(args[1], "off")) {
+        watchuserList = removeWatchuser(watchuserList, args[0]);
       }
       // end blocking
       pthread_mutex_unlock(&watchuserMutex);
-      checkUser(watch);
       // start the watch thread if it doesn't exist
       if (0 == watchuserThread) {
         if (pthread_create(&watchuserThread, NULL, watchuser, NULL)) {

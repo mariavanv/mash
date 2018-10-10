@@ -15,7 +15,7 @@ alias.o: alias.c alias.h
 history.o: history.c history.h
 	$(CC) -g -c history.c
 
-watchuser.o: history.c history.h
+watchuser.o: watchuser.c watchuser.h
 	$(CC) -g -c watchuser.c
 
 get_path.o: get_path.c get_path.h
