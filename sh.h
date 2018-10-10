@@ -12,6 +12,7 @@ char *where(char *command, struct pathelement *pathlist);
 void list ( char *dir );
 void printenv(char **envp);
 void* watchuser(void* param);
+void* watchmail(void* param);
 void checkUser(struct watchuserelement* user);
 
 #define PROMPTMAX 32

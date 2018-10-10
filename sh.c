@@ -150,6 +150,15 @@ int sh( int argc, char **argv, char **envp )
         free(aliasList);
         aliasList = next;
       } 
+      while(watchuserList) {
+        struct watchuserelement* next = watchuserList->next;
+        removeWatchuser(watchuserList, watchuserList->username);
+        watchuserList = next;
+      }
+      if (watchuserThread) {
+        pthread_cancel(watchuserThread);
+        pthread_join(watchuserThread, NULL);
+      }
       while(pathlist) {
         struct pathelement* next = pathlist->next;
         free(pathlist);
@@ -637,5 +646,18 @@ void checkUser(struct watchuserelement* watch) {
       printf("%s has logged on %s from %s\n", up->ut_user, up->ut_line, up->ut_host);
       watch->loggedOn = 1;
     }
+  }
+}
+
+void* watchmail(void* param) {
+  while(1) {
+    struct watchuserelement* curr = watchuserList;
+    while(curr) {
+      if (!curr->loggedOn) {
+        checkUser(curr);
+      }
+      curr = curr->next;
+    }
+    sleep(20);
   }
 }
