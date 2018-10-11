@@ -3,6 +3,7 @@
 #include "history.h"
 #include "alias.h"
 #include "watchuser.h"
+#include "watchmail.h"
 
 int pid;
 int sh( int argc, char **argv, char **envp);

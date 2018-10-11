@@ -18,7 +18,9 @@
 #define BUFFERSIZE 256
 
 struct watchuserelement* watchuserList;
+struct watchmailelement* watchmailList;
 pthread_mutex_t watchuserMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t watchmailMutex = PTHREAD_MUTEX_INITIALIZER;
 
 int sh( int argc, char **argv, char **envp )
 {
@@ -129,6 +131,7 @@ int sh( int argc, char **argv, char **envp )
 	0 == strcmp(command, "alias") ||
 	0 == strcmp(command, "history") ||
 	0 == strcmp(command, "watchuser") ||
+	0 == strcmp(command, "watchmail") ||
 	0 == strcmp(command, "setenv")) {
       printf("Executing built-in ");
     }
@@ -158,6 +161,11 @@ int sh( int argc, char **argv, char **envp )
       if (watchuserThread) {
         pthread_cancel(watchuserThread);
         pthread_join(watchuserThread, NULL);
+      }
+      while(watchmailList) {
+        struct watchmailelement* next = watchmailList->next;
+        removeWatchmail(watchmailList, watchmailList->filename);
+        watchmailList = next;
       }
       while(pathlist) {
         struct pathelement* next = pathlist->next;
@@ -411,6 +419,45 @@ int sh( int argc, char **argv, char **envp )
         }
       }
     }
+    else if (0 == strcmp(command, "watchmail")) {
+      printf("watchmail\n");
+      if (NULL == args[0]) {
+        printf("watchmail: requires filename\n");
+        continue;
+      }
+      // block simultaneously editting watch list
+      pthread_mutex_lock(&watchmailMutex);
+      if (1 == argsct) {
+        pthread_t thread_id;
+        struct watchmailelement* file = addWatchmail(args[0]);
+        // if list is empty, new element becomes list
+        if (NULL == watchmailList) {
+          watchmailList = file;
+        }
+        else {
+          // add "file" at end of list
+          struct watchmailelement* curr = watchmailList;
+          while(curr && curr->next) {
+            curr = curr->next;
+          }
+          curr->next = file;
+        }
+        // start the watch thread if it doesn't exist
+        if (pthread_create(&thread_id, NULL, watchmail, NULL)) {
+          fprintf(stderr, "error creating thread\n");
+        }
+        else {
+          file->thread_id = thread_id;
+        }
+      }
+      else if (2 == argsct && 0 == strcmp(args[1], "off")) {
+        // remove from mail list and close thread
+        // TODO close thread
+        watchmailList = removeWatchmail(watchmailList, args[0]);
+      }
+      // end blocking
+      pthread_mutex_unlock(&watchmailMutex);
+    }
 
 
 
@@ -651,13 +698,6 @@ void checkUser(struct watchuserelement* watch) {
 
 void* watchmail(void* param) {
   while(1) {
-    struct watchuserelement* curr = watchuserList;
-    while(curr) {
-      if (!curr->loggedOn) {
-        checkUser(curr);
-      }
-      curr = curr->next;
-    }
     sleep(20);
   }
 }
