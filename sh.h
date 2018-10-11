@@ -15,6 +15,7 @@ void printenv(char **envp);
 void* watchuser(void* param);
 void* watchmail(void* param);
 void checkUser(struct watchuserelement* user);
+int fileModified(char* filename, time_t oldTime);
 
 #define PROMPTMAX 32
 #define MAXARGS 10

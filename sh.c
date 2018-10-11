@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
 #include <glob.h>
@@ -697,7 +698,26 @@ void checkUser(struct watchuserelement* watch) {
 }
 
 void* watchmail(void* param) {
+  char* filename = (char*) param;
+  struct stat fileStat;
+  int statResult = stat(filename, &fileStat);
   while(1) {
-    sleep(20);
+    if (fileModified(filename, fileStat.st_mtime)) {
+      statResult = stat(filename, &fileStat);
+      printf("\aYou've Got Mail in %s at %ld", filename, fileStat.st_mtime);
+    }
+    sleep(1);
   }
+}
+
+// given a file and the last time it was modified, see if it has been updated
+int fileModified(char* path, time_t prevTime) {
+  struct stat fileStat;
+  int statResult = stat(path, &fileStat);
+  if (0 != statResult) {
+    // TODO When an error condition happens in a thread, pthread_exit(3) should be used.
+    perror("File does not exist");
+    pthread_exit(NULL);
+  }
+  return fileStat.st_mtime > prevTime;
 }
