@@ -444,7 +444,7 @@ int sh( int argc, char **argv, char **envp )
           curr->next = file;
         }
         // start the watch thread if it doesn't exist
-        if (pthread_create(&thread_id, NULL, watchmail, NULL)) {
+        if (pthread_create(&thread_id, NULL, watchmail, file->filename)) {
           fprintf(stderr, "error creating thread\n");
         }
         else {
@@ -704,7 +704,7 @@ void* watchmail(void* param) {
   while(1) {
     if (fileModified(filename, fileStat.st_mtime)) {
       statResult = stat(filename, &fileStat);
-      printf("\aYou've Got Mail in %s at %ld", filename, fileStat.st_mtime);
+      printf("\aYou've Got Mail in %s at %ld\n", filename, fileStat.st_mtime);
     }
     sleep(1);
   }
@@ -715,8 +715,11 @@ int fileModified(char* path, time_t prevTime) {
   struct stat fileStat;
   int statResult = stat(path, &fileStat);
   if (0 != statResult) {
-    // TODO When an error condition happens in a thread, pthread_exit(3) should be used.
-    perror("File does not exist");
+    perror("watchmail");
+    pthread_mutex_lock(&watchmailMutex);
+    watchmailList = removeWatchmailElement(watchmailList, path, NO_CLOSE_THREAD);
+    // TODO remove from watchmail list
+    pthread_mutex_unlock(&watchmailMutex);
     pthread_exit(NULL);
   }
   return fileStat.st_mtime > prevTime;
