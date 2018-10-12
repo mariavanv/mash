@@ -501,6 +501,7 @@ int sh( int argc, char **argv, char **envp )
 
       if(NULL != com && (0 == access(com, X_OK))) {
         printf("Executing %s\n", com);
+        // TODO execute noclobber check to prevent forking and not execing
         pid_t parent = getpid();
         pid_t pid = fork();
         // parent
@@ -519,17 +520,21 @@ int sh( int argc, char **argv, char **envp )
         else {
           char** const envp = {NULL};
           execargs[0] = com;
+          int redirResult;
           // if not wildcards, run the program
           if (0 == strstr(commandlinecopy, wildcard) &&
               0 == strstr(commandlinecopy, singlewildcard)) {
             for (int i = 0; i < argsct; i++) {
               if(isRedirect(args[i])) {
-                checkRedirect(args[i], args[i+1], noclobber);
+                redirResult = checkRedirect(args[i], args[i+1], noclobber);
                 i++;
               }
               else {
                 execargs[i+1] = args[i];
               }
+            }
+            if (-1 != redirResult) {
+              perror("Redirection error"); 
             }
             if (-1 == execve(com, execargs, envp)) {
               perror(command);
@@ -742,7 +747,7 @@ int fileModified(char* path, time_t prevTime) {
   return fileStat.st_mtime > prevTime;
 }
 
-void checkRedirect(char* redir, char* filename, int noclobber) {
+int checkRedirect(char* redir, char* filename, int noclobber) {
   int fid;
   int mode = 0644;
   if (0 == strcmp(redir, outRedir) || 0 == strcmp(redir, outErrRedir)) {
@@ -752,7 +757,7 @@ void checkRedirect(char* redir, char* filename, int noclobber) {
       fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
     }
     if (-1 == fid) {
-      perror("Error opening file");
+      perror(filename);
     }
     else {
       close(1);
@@ -767,7 +772,23 @@ void checkRedirect(char* redir, char* filename, int noclobber) {
       fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
     }
     if (-1 == fid) {
-      perror("Error opening file");
+      perror(filename);
+    }
+    else {
+      close(2);
+      dup(fid);
+      close(fid);
+    }
+  }
+  else if (0 == strcmp(redir, outAppendRedir) || 0 == strcmp(redir, outErrAppendRedir)) {
+    if (!noclobber) {
+      fid = open(filename, O_WRONLY | O_CREAT);
+    }
+    else {
+      fid = open(filename, O_WRONLY);
+    }
+    if (-1 == fid) {
+      perror(filename);
     }
     else {
       close(1);
@@ -775,18 +796,39 @@ void checkRedirect(char* redir, char* filename, int noclobber) {
       close(fid);
     }
   }
-  else if (0 == strcmp(redir, outErrRedir)) {
-    
+  else if (0 == strcmp(redir, outErrAppendRedir)) {
+    if (!noclobber) {
+      fid = open(filename, O_WRONLY | O_CREAT);
+    }
+    else {
+      fid = open(filename, O_WRONLY);
+    }
+    if (-1 == fid) {
+      perror(filename);
+    }
+    else {
+      close(2);
+      dup(fid);
+      close(fid);
+    }
   }
-  else if (0 == strcmp(redir, outErrRedir)) {
-    
+  else if (0 == strcmp(redir, inRedir)) {
+    if (!noclobber) {
+      fid = open(filename, O_RDONLY | O_CREAT);
+    }
+    else {
+      fid = open(filename, O_RDONLY);
+    }
+    if (-1 == fid) {
+      perror(filename);
+    }
+    else {
+      close(2);
+      dup(fid);
+      close(fid);
+    }
   }
-  else if (0 == strcmp(redir, outErrRedir)) {
-    
-  }
-  else {
-    return;
-  }
+  return fid;
 }
 
 int isRedirect(char* arg) {

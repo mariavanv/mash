@@ -16,7 +16,7 @@ void* watchuser(void* param);
 void* watchmail(void* param);
 void checkUser(struct watchuserelement* user);
 int fileModified(char* filename, time_t oldTime);
-void checkRedirect(char* redir, char* filename, int noclobber);
+int checkRedirect(char* redir, char* filename, int noclobber);
 int isRedirect(char* arg) ;
 
 #define PROMPTMAX 32
