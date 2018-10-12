@@ -743,12 +743,13 @@ int fileModified(char* path, time_t prevTime) {
 }
 
 void checkRedirect(char* redir, char* filename, int noclobber) {
-  if (0 == strcmp(redir, outRedir)) {
-    int fid;
+  int fid;
+  int mode = 0644;
+  if (0 == strcmp(redir, outRedir) || 0 == strcmp(redir, outErrRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
     } else {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0644);
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
     }
     if (-1 == fid) {
       perror("Error opening file");
@@ -759,8 +760,20 @@ void checkRedirect(char* redir, char* filename, int noclobber) {
       close(fid);
     }
   }
-  else if (0 == strcmp(redir, outErrRedir)) {
-    
+  if (0 == strcmp(redir, outErrRedir)) {
+    if (!noclobber) {
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
+    } else {
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
+    }
+    if (-1 == fid) {
+      perror("Error opening file");
+    }
+    else {
+      close(1);
+      dup(fid);
+      close(fid);
+    }
   }
   else if (0 == strcmp(redir, outErrRedir)) {
     
