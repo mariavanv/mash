@@ -14,6 +14,7 @@
 #include <glob.h>
 #include <pthread.h>
 #include <utmpx.h>
+#include <fcntl.h>
 #include "sh.h"
 
 #define BUFFERSIZE 256
@@ -22,6 +23,11 @@ struct watchuserelement* watchuserList;
 struct watchmailelement* watchmailList;
 pthread_mutex_t watchuserMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t watchmailMutex = PTHREAD_MUTEX_INITIALIZER;
+char* outRedir = ">";
+char* outErrRedir = ">&";
+char* outAppendRedir = ">>";
+char* outErrAppendRedir = ">>&";
+char* inRedir = "<";
 
 int sh( int argc, char **argv, char **envp )
 {
@@ -49,6 +55,7 @@ int sh( int argc, char **argv, char **envp )
   struct aliaselement* aliasList = NULL;
   int background = 0;
   pthread_t watchuserThread = 0;
+  int noclobber = 0;
 
   uid = getuid();
   password_entry = getpwuid(uid);               /* get passwd info */
@@ -516,7 +523,13 @@ int sh( int argc, char **argv, char **envp )
           if (0 == strstr(commandlinecopy, wildcard) &&
               0 == strstr(commandlinecopy, singlewildcard)) {
             for (int i = 0; i < argsct; i++) {
-              execargs[i+1] = args[i];
+              if(isRedirect(args[i])) {
+                checkRedirect(args[i], args[i+1], noclobber);
+                i++;
+              }
+              else {
+                execargs[i+1] = args[i];
+              }
             }
             if (-1 == execve(com, execargs, envp)) {
               perror(command);
@@ -527,6 +540,10 @@ int sh( int argc, char **argv, char **envp )
             glob_t globbuf;
             int gl_offs_count = 1;
             for (int i = 0; i < argsct - 1; i++) {
+              if(isRedirect(args[i])) {
+                checkRedirect(args[i], args[i+1], noclobber);
+                i++;
+              }
               if (0 == strncmp(args[i], dash, 1)) {
                 gl_offs_count++;
               }
@@ -723,4 +740,46 @@ int fileModified(char* path, time_t prevTime) {
     pthread_exit(NULL);
   }
   return fileStat.st_mtime > prevTime;
+}
+
+void checkRedirect(char* redir, char* filename, int noclobber) {
+  if (0 == strcmp(redir, outRedir)) {
+    int fid;
+    if (!noclobber) {
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    } else {
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, 0644);
+    }
+    if (-1 == fid) {
+      perror("Error opening file");
+    }
+    else {
+      close(1);
+      dup(fid);
+      close(fid);
+    }
+  }
+  else if (0 == strcmp(redir, outErrRedir)) {
+    
+  }
+  else if (0 == strcmp(redir, outErrRedir)) {
+    
+  }
+  else if (0 == strcmp(redir, outErrRedir)) {
+    
+  }
+  else if (0 == strcmp(redir, outErrRedir)) {
+    
+  }
+  else {
+    return;
+  }
+}
+
+int isRedirect(char* arg) {
+  return !(strcmp(arg, outRedir) &&
+           strcmp(arg, outErrRedir) &&
+           strcmp(arg, outAppendRedir) &&
+           strcmp(arg, outErrAppendRedir) &&
+           strcmp(arg, inRedir));
 }
