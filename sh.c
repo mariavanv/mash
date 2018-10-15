@@ -533,7 +533,7 @@ int sh( int argc, char **argv, char **envp )
                 execargs[i+1] = args[i];
               }
             }
-            if (-1 != redirResult) {
+            if (-1 == redirResult) {
               perror("Redirection error"); 
             }
             if (-1 == execve(com, execargs, envp)) {
@@ -782,10 +782,10 @@ int checkRedirect(char* redir, char* filename, int noclobber) {
   }
   else if (0 == strcmp(redir, outAppendRedir) || 0 == strcmp(redir, outErrAppendRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT);
+      fid = open(filename, O_WRONLY | O_CREAT | O_APPEND);
     }
     else {
-      fid = open(filename, O_WRONLY);
+      fid = open(filename, O_WRONLY | O_APPEND);
     }
     if (-1 == fid) {
       perror(filename);
@@ -798,10 +798,10 @@ int checkRedirect(char* redir, char* filename, int noclobber) {
   }
   else if (0 == strcmp(redir, outErrAppendRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT);
+      fid = open(filename, O_WRONLY | O_CREAT | O_APPEND);
     }
     else {
-      fid = open(filename, O_WRONLY);
+      fid = open(filename, O_WRONLY | O_APPEND);
     }
     if (-1 == fid) {
       perror(filename);
