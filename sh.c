@@ -175,6 +175,7 @@ int sh( int argc, char **argv, char **envp )
         removeWatchmail(watchmailList, watchmailList->filename);
         watchmailList = next;
       }
+      free(pathlist->element);
       while(pathlist) {
         struct pathelement* next = pathlist->next;
         free(pathlist);
