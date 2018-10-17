@@ -50,6 +50,7 @@ int sh( int argc, char **argv, char **envp )
   char* wildcard = "*";
   char* singlewildcard = "?";
   char* dash = "-";
+  char* pipeSymbol= "|";
   struct historyelement *lastcommand = NULL;
   struct historyelement *newcommand = NULL;
   struct aliaselement* aliasList = NULL;
@@ -188,8 +189,9 @@ int sh( int argc, char **argv, char **envp )
       free(pwd);
       free(prevDir);
       for (int i = 0; i < MAXARGS + 1; i++) {
-        if (NULL!= execargs[i]);
+        if (NULL != execargs[i]) {
         free(execargs[i]);
+        }
       }
       free(execargs);
       free(args);
@@ -467,7 +469,22 @@ int sh( int argc, char **argv, char **envp )
       // end blocking
       pthread_mutex_unlock(&watchmailMutex);
     }
-
+    else if (0 == strcmp(command, "noclobber")) {
+      noclobber = (noclobber + 1) % 2;
+      printf("noclobber set to %d\n", noclobber);
+    }
+    else if (0 == strcmp(command, "set")) {
+      if (args[0] && 0 == strcmp(args[0], "noclobber")) {
+        noclobber = 1;
+        printf("noclobber set to %d\n", noclobber);
+      }
+    }
+    else if (0 == strcmp(command, "unset")) {
+      if (args[0] && 0 == strcmp(args[0], "noclobber")) {
+        noclobber = 0;
+        printf("noclobber set to %d\n", noclobber);
+      }
+    }
 
 
     else {
@@ -727,6 +744,7 @@ void* watchmail(void* param) {
   while(1) {
     if (fileModified(filename, fileStat.st_mtime)) {
       statResult = stat(filename, &fileStat);
+      // TODO ctime date format
       printf("\aYou've Got Mail in %s at %ld\n", filename, fileStat.st_mtime);
     }
     sleep(1);
