@@ -519,7 +519,6 @@ int sh( int argc, char **argv, char **envp )
 
       if(NULL != com && (0 == access(com, X_OK))) {
         printf("Executing %s\n", com);
-        // TODO execute noclobber check to prevent forking and not execing
         pid_t parent = getpid();
         pid_t pid = fork();
         // parent
@@ -582,7 +581,7 @@ int sh( int argc, char **argv, char **envp )
                 dup(pfds[0]);
                 close(pfds[1]);
                 execve(which(pipeargs[0], pathlist), pipeargs, envp);
-                waitpid(first, &pipeStatus, NULL);
+                waitpid(first, &pipeStatus, 0);
               }
             }
             else {
