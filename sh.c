@@ -51,6 +51,7 @@ int sh( int argc, char **argv, char **envp )
   char* singlewildcard = "?";
   char* dash = "-";
   char* pipeSymbol= "|";
+  char* pipeErrSymbol= "|&";
   struct historyelement *lastcommand = NULL;
   struct historyelement *newcommand = NULL;
   struct aliaselement* aliasList = NULL;
@@ -464,7 +465,6 @@ int sh( int argc, char **argv, char **envp )
       }
       else if (2 == argsct && 0 == strcmp(args[1], "off")) {
         // remove from mail list and close thread
-        // TODO close thread
         watchmailList = removeWatchmail(watchmailList, args[0]);
       }
       // end blocking
@@ -545,6 +545,7 @@ int sh( int argc, char **argv, char **envp )
             char* filename;
             char** pipeargs;
             int postPipe = 0;
+            int pipeErr = 0;
             for (int i = 0; i < argsct; i++) {
               if(isRedirect(args[i])) {
                 redirResult = checkRedirect(args[i], args[i+1], noclobber);
@@ -552,9 +553,12 @@ int sh( int argc, char **argv, char **envp )
                 i++;
               }
               else {
-                if (0 == strcmp(args[i], pipeSymbol)) {
+                if (0 == strcmp(args[i], pipeSymbol) || 0 == strcmp(args[i], pipeErrSymbol)) {
+                  if (0 == strcmp(args[i], pipeErrSymbol)) {
+                    pipeErr = 1;
+                  }
                   postPipe = 1;
-                  pipeargs = args+1;
+                  pipeargs = args+i+1;
                 }
                 if (!postPipe) {
                   execargs[i+1] = args[i];
@@ -572,6 +576,11 @@ int sh( int argc, char **argv, char **envp )
                 close(1);
                 dup(pfds[1]);
                 close(pfds[0]);
+                if (pipeErr) {
+                  close(2);
+                  dup(pfds[1]);
+                  close(pfds[0]);
+                }
                 if (-1 == execve(com, execargs, envp)) {
                   perror(com);
                 }
@@ -795,7 +804,6 @@ int fileModified(char* path, time_t prevTime) {
     perror("watchmail");
     pthread_mutex_lock(&watchmailMutex);
     watchmailList = removeWatchmailElement(watchmailList, path, NO_CLOSE_THREAD);
-    // TODO remove from watchmail list
     pthread_mutex_unlock(&watchmailMutex);
     pthread_exit(NULL);
   }
