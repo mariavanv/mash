@@ -538,24 +538,60 @@ int sh( int argc, char **argv, char **envp )
         else {
           char** const envp = {NULL};
           execargs[0] = com;
-          int redirResult;
+          int redirResult = 0;
           // if not wildcards, run the program
           if (0 == strstr(commandlinecopy, wildcard) &&
               0 == strstr(commandlinecopy, singlewildcard)) {
+            char* filename;
+            char** pipeargs;
+            int postPipe = 0;
             for (int i = 0; i < argsct; i++) {
               if(isRedirect(args[i])) {
                 redirResult = checkRedirect(args[i], args[i+1], noclobber);
+                 filename = args[i+1];
                 i++;
               }
               else {
-                execargs[i+1] = args[i];
+                if (0 == strcmp(args[i], pipeSymbol)) {
+                  postPipe = 1;
+                  pipeargs = args+1;
+                }
+                if (!postPipe) {
+                  execargs[i+1] = args[i];
+                }
               }
             }
-            if (-1 == redirResult) {
-              perror("Redirection error"); 
+            if (postPipe) {
+              int pipeStatus;
+              int pfds[2];
+              pipe(pfds);
+              pid_t first = fork();
+              // first process / parent
+              if (first) {
+                /* char* c = which(com, pathlist); */
+                close(1);
+                dup(pfds[1]);
+                close(pfds[0]);
+                if (-1 == execve(com, execargs, envp)) {
+                  perror(com);
+                }
+                close(pfds[1]);
+              }
+              else {
+                close(0);
+                dup(pfds[0]);
+                close(pfds[1]);
+                execve(which(pipeargs[0], pathlist), pipeargs, envp);
+                waitpid(first, &pipeStatus, NULL);
+              }
             }
-            if (-1 == execve(com, execargs, envp)) {
-              perror(command);
+            else {
+              if (-1 == redirResult) {
+                return 0;
+              }
+              else if (-1 == execve(com, execargs, envp)) {
+                perror(command);
+              }
             }
           }
           // if there are wildcards, expand them all
