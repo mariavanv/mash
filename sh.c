@@ -122,6 +122,7 @@ int sh( int argc, char **argv, char **envp )
     if (1 < argsct && 0 == strcmp(args[argsct-2], "&")) {
       background = 1;
       args[argsct-2] = NULL;
+      argsct--;
     }
     argsct--;
 
@@ -547,7 +548,7 @@ int sh( int argc, char **argv, char **envp )
             for (int i = 0; i < argsct; i++) {
               if(isRedirect(args[i])) {
                 redirResult = checkRedirect(args[i], args[i+1], noclobber);
-                 filename = args[i+1];
+                filename = args[i+1];
                 i++;
               }
               else {
