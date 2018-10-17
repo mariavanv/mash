@@ -806,9 +806,9 @@ int checkRedirect(char* redir, char* filename, int noclobber) {
   int mode = 0644;
   if (0 == strcmp(redir, outRedir) || 0 == strcmp(redir, outErrRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, mode);
     } else {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
+      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL | O_APPEND, mode);
     }
     if (-1 == fid) {
       perror(filename);
@@ -818,28 +818,28 @@ int checkRedirect(char* redir, char* filename, int noclobber) {
       dup(fid);
       close(fid);
     }
-  }
-  if (0 == strcmp(redir, outErrRedir)) {
-    if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC, mode);
-    } else {
-      fid = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL, mode);
-    }
-    if (-1 == fid) {
-      perror(filename);
-    }
-    else {
-      close(2);
-      dup(fid);
-      close(fid);
+    if (0 == strcmp(redir, outErrRedir)) {
+      if (!noclobber) {
+        fid = open(filename, O_WRONLY);
+      } else {
+        fid = open(filename, O_WRONLY);
+      }
+      if (-1 == fid) {
+        perror(filename);
+      }
+      else {
+        close(2);
+        dup(fid);
+        close(fid);
+      }
     }
   }
   else if (0 == strcmp(redir, outAppendRedir) || 0 == strcmp(redir, outErrAppendRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT | O_APPEND);
+      fid = open(filename, O_WRONLY | O_CREAT | O_APPEND, mode);
     }
     else {
-      fid = open(filename, O_WRONLY | O_APPEND);
+      fid = open(filename, O_WRONLY | O_APPEND, mode);
     }
     if (-1 == fid) {
       perror(filename);
@@ -849,29 +849,29 @@ int checkRedirect(char* redir, char* filename, int noclobber) {
       dup(fid);
       close(fid);
     }
-  }
-  else if (0 == strcmp(redir, outErrAppendRedir)) {
-    if (!noclobber) {
-      fid = open(filename, O_WRONLY | O_CREAT | O_APPEND);
-    }
-    else {
-      fid = open(filename, O_WRONLY | O_APPEND);
-    }
-    if (-1 == fid) {
-      perror(filename);
-    }
-    else {
-      close(2);
-      dup(fid);
-      close(fid);
+    if (0 == strcmp(redir, outErrAppendRedir)) {
+      if (!noclobber) {
+        fid = open(filename, O_WRONLY | O_APPEND, mode);
+      }
+      else {
+        fid = open(filename, O_WRONLY | O_APPEND, mode);
+      }
+      if (-1 == fid) {
+        perror(filename);
+      }
+      else {
+        close(2);
+        dup(fid);
+        close(fid);
+      }
     }
   }
   else if (0 == strcmp(redir, inRedir)) {
     if (!noclobber) {
-      fid = open(filename, O_RDONLY | O_CREAT);
+      fid = open(filename, O_RDONLY | O_CREAT, mode);
     }
     else {
-      fid = open(filename, O_RDONLY);
+      fid = open(filename, O_RDONLY, mode);
     }
     if (-1 == fid) {
       perror(filename);
