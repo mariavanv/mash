@@ -786,14 +786,19 @@ void* watchmail(void* param) {
   char* filename = (char*) param;
   struct stat fileStat;
   int statResult = stat(filename, &fileStat);
+  char* timestring;
   while(1) {
     if (fileModified(filename, fileStat.st_mtime)) {
       statResult = stat(filename, &fileStat);
-      // TODO ctime date format
-      printf("\aYou've Got Mail in %s at %ld\n", filename, fileStat.st_mtime);
+      struct timeval tv;
+      struct timezone tz;
+      int time = gettimeofday(&tv, &tz);
+      timestring = ctime(&tv.tv_sec);
+      printf("\aYou've Got Mail in %s at %s\n", filename, timestring);
     }
     sleep(1);
   }
+  free(timestring);
 }
 
 // given a file and the last time it was modified, see if it has been updated
